@@ -1,0 +1,41 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: recipe-demo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: db_password
+      MYSQL_DATABASE: recipe-demo
+      MYSQL_USER: db_username
+      MYSQL_PASSWORD: db_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  recipe-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recipe-demo-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8443:8443"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/recipe-demo
+      - SPRING_DATASOURCE_USERNAME=db_username
+      - SPRING_DATASOURCE_PASSWORD=db_password
+      - APP_SECRET_KEY=your_secret_key
+      - APP_FRONTEND_URL=http://localhost:5173
+    volumes:
+      - ./keystore.p12:/app/keystore.p12
+
+volumes:
+  mysql_data:
